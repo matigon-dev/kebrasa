@@ -719,22 +719,16 @@
       await window.storage.set(KEY,JSON.stringify(l),true);
     }catch(e){mem.push(rec);}
 
-    // 2. Enviar a Kit
-    if(KIT_API_KEY && KIT_FORM_ID){
-      try{
-        const res=await fetch(`https://api.convertkit.com/v3/forms/${KIT_FORM_ID}/subscribe`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json; charset=utf-8'},
-          body:JSON.stringify({
-            api_key:KIT_API_KEY,
-            email:rec.email,
-            first_name:rec.name||'',
-            fields:{interes:rec.plan||'',personalizacion:rec.custom||''}
-          })
-        });
-        if(!res.ok) console.warn('Kit error:',res.status);
-      }catch(e){console.warn('Kit submission failed:',e);}
-    }
+    // 2. Enviar a Kit via Netlify Function (server-to-server, sin CORS)
+    try{
+      const res=await fetch('/.netlify/functions/subscribe',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:rec.email,name:rec.name||''})
+      });
+      const data=await res.json();
+      if(!data.ok) console.warn('Kit error:',data);
+    }catch(e){console.warn('Kit submission failed:',e);}
 
     try{const r=await window.storage.get(KEY,true);return r?.value?JSON.parse(r.value).length:mem.length;}catch(e){return mem.length;}
   }
