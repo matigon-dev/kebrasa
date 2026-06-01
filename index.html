@@ -323,7 +323,8 @@
       <span class="chip"><b>Precio de fundador</b> para la lista</span>
       <span class="chip">Personalización <b>incluida</b></span>
     </div>
-    <form class="signup" id="form1">
+    <form class="signup" id="form1" data-netlify="true" name="kebrasa-waitlist">
+    <input type="hidden" name="form-name" value="kebrasa-waitlist">
       <div class="field">
         <input type="text" id="name1" placeholder="Tu nombre" aria-label="Tu nombre" required>
         <input type="email" placeholder="Tu email" aria-label="Tu email" required style="border-left:2px solid var(--line-strong)">
@@ -629,7 +630,8 @@
     <span class="kicker" style="color:var(--paper);justify-content:center">Lista de espera · Fundadores</span>
     <h2 style="margin-top:14px">Sumate a <span class="out">la lista</span>.</h2>
     <p>Dejá tu nombre y tu email: te avisamos apenas KEBRASA salga a la venta, con precio de fundador y envío a toda España. Sin compromiso, sin pagar nada hoy.</p>
-    <form class="rform signup" id="form2">
+    <form class="rform signup" id="form2" data-netlify="true" name="kebrasa-waitlist">
+    <input type="hidden" name="form-name" value="kebrasa-waitlist">
       <div class="rrow">
         <input type="text" id="name2" placeholder="Tu nombre" aria-label="Tu nombre" required>
         <select id="planSel" aria-label="Qué te interesa">
@@ -719,16 +721,29 @@
       await window.storage.set(KEY,JSON.stringify(l),true);
     }catch(e){mem.push(rec);}
 
-    // 2. Enviar a Kit via Netlify Function (server-to-server, sin CORS)
+    // 1. Netlify Forms — mismo dominio, sin CORS, 100% confiable
     try{
-      const res=await fetch('/.netlify/functions/subscribe',{
+      await fetch('/',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email:rec.email,name:rec.name||''})
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams({
+          'form-name':'kebrasa-waitlist',
+          name:rec.name||'',
+          email:rec.email,
+          plan:rec.plan||'',
+          custom:rec.custom||''
+        }).toString()
       });
-      const data=await res.json();
-      if(!data.ok) console.warn('Kit error:',data);
-    }catch(e){console.warn('Kit submission failed:',e);}
+    }catch(e){console.warn('Netlify Forms error:',e);}
+
+    // 2. Kit — direct form URL (no-cors, fire-and-forget)
+    try{
+      await fetch('https://app.kit.com/forms/9508596/subscriptions',{
+        method:'POST',mode:'no-cors',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams({'email_address':rec.email,'fields[first_name]':rec.name||''})
+      });
+    }catch(e){console.warn('Kit error:',e);}
 
     try{const r=await window.storage.get(KEY,true);return r?.value?JSON.parse(r.value).length:mem.length;}catch(e){return mem.length;}
   }
